@@ -247,7 +247,7 @@ def perform_backup(full_backup):
 			if quit:
 				sys.exit(code)
 
-	service_command("php7.2-fpm", "stop", quit=True)
+	service_command("php7.3-fpm", "stop", quit=True)
 	service_command("postfix", "stop", quit=True)
 	service_command("dovecot", "stop", quit=True)
 
@@ -281,7 +281,7 @@ def perform_backup(full_backup):
 		# Start services again.
 		service_command("dovecot", "start", quit=False)
 		service_command("postfix", "start", quit=False)
-		service_command("php7.2-fpm", "start", quit=False)
+		service_command("php7.3-fpm", "start", quit=False)
 
 	# Remove old backups. This deletes all backup data no longer needed
 	# from more than 3 days ago.
@@ -461,7 +461,7 @@ def list_target_files(config):
 		from b2sdk.v1.exception import NonExistentBucket
 		info = InMemoryAccountInfo()
 		b2_api = B2Api(info)
-		
+
 		# Extract information from target
 		b2_application_keyid = target.netloc[:target.netloc.index(':')]
 		b2_application_key = target.netloc[target.netloc.index(':')+1:target.netloc.index('@')]

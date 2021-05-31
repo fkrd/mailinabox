@@ -11,10 +11,10 @@ echo "Installing Nextcloud (contacts/calendar)..."
 
 apt-get purge -qq -y owncloud* # we used to use the package manager
 
-apt_install php php-fpm \
-	php-cli php-sqlite3 php-gd php-imap php-curl php-pear curl \
-	php-dev php-gd php-xml php-mbstring php-zip php-apcu php-json \
-	php-intl php-imagick php-gmp php-bcmath
+apt_install php7.3 php7.3-fpm \
+	php7.3-cli php7.3-sqlite3 php7.3-gd php7.3-imap php7.3-curl php-pear curl \
+	php7.3-dev php7.3-gd php7.3-xml php7.3-mbstring php7.3-zip php7.3-apcu php7.3-json \
+	php7.3-intl php7.3-imagick php7.3-gmp php7.3-bcmath
 
 InstallNextcloud() {
 
@@ -79,20 +79,20 @@ InstallNextcloud() {
 	if [ -e $STORAGE_ROOT/owncloud/owncloud.db ]; then
 		# ownCloud 8.1.1 broke upgrades. It may fail on the first attempt, but
 		# that can be OK.
-		sudo -u www-data php /usr/local/lib/owncloud/occ upgrade
+		sudo -u www-data php7.3 /usr/local/lib/owncloud/occ upgrade
 		if [ \( $? -ne 0 \) -a \( $? -ne 3 \) ]; then
 			echo "Trying ownCloud upgrade again to work around ownCloud upgrade bug..."
-			sudo -u www-data php /usr/local/lib/owncloud/occ upgrade
+			sudo -u www-data php7.3 /usr/local/lib/owncloud/occ upgrade
 			if [ \( $? -ne 0 \) -a \( $? -ne 3 \) ]; then exit 1; fi
-			sudo -u www-data php /usr/local/lib/owncloud/occ maintenance:mode --off
+			sudo -u www-data php7.3 /usr/local/lib/owncloud/occ maintenance:mode --off
 			echo "...which seemed to work."
 		fi
 
 		# Add missing indices. NextCloud didn't include this in the normal upgrade because it might take some time.
-		sudo -u www-data php /usr/local/lib/owncloud/occ db:add-missing-indices
+		sudo -u www-data php7.3 /usr/local/lib/owncloud/occ db:add-missing-indices
 
 		# Run conversion to BigInt identifiers, this process may take some time on large tables.
-		sudo -u www-data php /usr/local/lib/owncloud/occ db:convert-filecache-bigint --no-interaction
+		sudo -u www-data php7.3 /usr/local/lib/owncloud/occ db:convert-filecache-bigint --no-interaction
 	fi
 }
 
@@ -114,7 +114,7 @@ user_external_hash=3bf2609061d7214e7f0f69dd8883e55c4ec8f50a
 
 # If config.php exists, get version number, otherwise CURRENT_NEXTCLOUD_VER is empty.
 if [ -f "$STORAGE_ROOT/owncloud/config.php" ]; then
-	CURRENT_NEXTCLOUD_VER=$(php -r "include(\"$STORAGE_ROOT/owncloud/config.php\"); echo(\$CONFIG['version']);")
+	CURRENT_NEXTCLOUD_VER=$(php7.3 -r "include(\"$STORAGE_ROOT/owncloud/config.php\"); echo(\$CONFIG['version']);")
 else
 	CURRENT_NEXTCLOUD_VER=""
 fi
@@ -124,7 +124,7 @@ fi
 if [ ! -d /usr/local/lib/owncloud/ ] || [[ ! ${CURRENT_NEXTCLOUD_VER} =~ ^$nextcloud_ver ]]; then
 
 	# Stop php-fpm if running. If theyre not running (which happens on a previously failed install), dont bail.
-	service php7.2-fpm stop &> /dev/null || /bin/true
+	service php7.3-fpm stop &> /dev/null || /bin/true
 
 	# Backup the existing ownCloud/Nextcloud.
 	# Create a backup directory to store the current installation and database to
@@ -159,7 +159,7 @@ if [ ! -d /usr/local/lib/owncloud/ ] || [[ ! ${CURRENT_NEXTCLOUD_VER} =~ ^$nextc
 		if [[ ${CURRENT_NEXTCLOUD_VER} =~ ^14 ]]; then
 			# During the upgrade from Nextcloud 14 to 15, user_external may cause the upgrade to fail.
 			# We will disable it here before the upgrade and install it again after the upgrade.
-			hide_output sudo -u www-data php /usr/local/lib/owncloud/console.php app:disable user_external
+			hide_output sudo -u www-data php7.3 /usr/local/lib/owncloud/console.php app:disable user_external
 			InstallNextcloud 15.0.8 4129d8d4021c435f2e86876225fb7f15adf764a3 3.3.0 e55d0357c6785d3b1f3b5f21780cb6d41d32443a 2.0.3 9d9717b29337613b72c74e9914c69b74b346c466 0.7.0 555a94811daaf5bdd336c5e48a78aa8567b86437
 			CURRENT_NEXTCLOUD_VER="15.0.8"
 		fi
@@ -185,7 +185,7 @@ if [ ! -d /usr/local/lib/owncloud/ ] || [[ ! ${CURRENT_NEXTCLOUD_VER} =~ ^$nextc
 	InstallNextcloud $nextcloud_ver $nextcloud_hash $contacts_ver $contacts_hash $calendar_ver $calendar_hash $user_external_ver $user_external_hash
 
 	# Nextcloud 20 needs to have some optional columns added
-	sudo -u www-data php /usr/local/lib/owncloud/occ db:add-missing-columns
+	sudo -u www-data php7.3 /usr/local/lib/owncloud/occ db:add-missing-columns
 fi
 
 # ### Configuring Nextcloud
@@ -256,7 +256,7 @@ EOF
 	# Execute Nextcloud's setup step, which creates the Nextcloud sqlite database.
 	# It also wipes it if it exists. And it updates config.php with database
 	# settings and deletes the autoconfig.php file.
-	(cd /usr/local/lib/owncloud; sudo -u www-data php /usr/local/lib/owncloud/index.php;)
+	(cd /usr/local/lib/owncloud; sudo -u www-data php7.3 /usr/local/lib/owncloud/index.php;)
 fi
 
 # Update config.php.
@@ -272,7 +272,7 @@ fi
 # Use PHP to read the settings file, modify it, and write out the new settings array.
 TIMEZONE=$(cat /etc/timezone)
 CONFIG_TEMP=$(/bin/mktemp)
-php <<EOF > $CONFIG_TEMP && mv $CONFIG_TEMP $STORAGE_ROOT/owncloud/config.php;
+php7.3 <<EOF > $CONFIG_TEMP && mv $CONFIG_TEMP $STORAGE_ROOT/owncloud/config.php;
 <?php
 include("$STORAGE_ROOT/owncloud/config.php");
 
@@ -300,25 +300,25 @@ chown www-data.www-data $STORAGE_ROOT/owncloud/config.php
 # The firstrunwizard gave Josh all sorts of problems, so disabling that.
 # user_external is what allows Nextcloud to use IMAP for login. The contacts
 # and calendar apps are the extensions we really care about here.
-hide_output sudo -u www-data php /usr/local/lib/owncloud/console.php app:disable firstrunwizard
-hide_output sudo -u www-data php /usr/local/lib/owncloud/console.php app:enable user_external
-hide_output sudo -u www-data php /usr/local/lib/owncloud/console.php app:enable contacts
-hide_output sudo -u www-data php /usr/local/lib/owncloud/console.php app:enable calendar
+hide_output sudo -u www-data php7.3 /usr/local/lib/owncloud/console.php app:disable firstrunwizard
+hide_output sudo -u www-data php7.3 /usr/local/lib/owncloud/console.php app:enable user_external
+hide_output sudo -u www-data php7.3 /usr/local/lib/owncloud/console.php app:enable contacts
+hide_output sudo -u www-data php7.3 /usr/local/lib/owncloud/console.php app:enable calendar
 
 # When upgrading, run the upgrade script again now that apps are enabled. It seems like
 # the first upgrade at the top won't work because apps may be disabled during upgrade?
 # Check for success (0=ok, 3=no upgrade needed).
-sudo -u www-data php /usr/local/lib/owncloud/occ upgrade
+sudo -u www-data php7.3 /usr/local/lib/owncloud/occ upgrade
 if [ \( $? -ne 0 \) -a \( $? -ne 3 \) ]; then exit 1; fi
 
 # Disable default apps that we don't support
 sudo -u www-data \
-	php /usr/local/lib/owncloud/occ app:disable photos dashboard activity \
+	php7.3 /usr/local/lib/owncloud/occ app:disable photos dashboard activity \
 	| (grep -v "No such app enabled" || /bin/true)
 
 # Set PHP FPM values to support large file uploads
 # (semicolon is the comment character in this file, hashes produce deprecation warnings)
-tools/editconf.py /etc/php/7.2/fpm/php.ini -c ';' \
+tools/editconf.py /etc/php/7.3/fpm/php.ini -c ';' \
 	upload_max_filesize=16G \
 	post_max_size=16G \
 	output_buffering=16384 \
@@ -327,7 +327,7 @@ tools/editconf.py /etc/php/7.2/fpm/php.ini -c ';' \
 	short_open_tag=On
 
 # Set Nextcloud recommended opcache settings
-tools/editconf.py /etc/php/7.2/cli/conf.d/10-opcache.ini -c ';' \
+tools/editconf.py /etc/php/7.3/cli/conf.d/10-opcache.ini -c ';' \
 	opcache.enable=1 \
 	opcache.enable_cli=1 \
 	opcache.interned_strings_buffer=8 \
@@ -337,8 +337,8 @@ tools/editconf.py /etc/php/7.2/cli/conf.d/10-opcache.ini -c ';' \
 	opcache.revalidate_freq=1
 
 # If apc is explicitly disabled we need to enable it
-if grep -q apc.enabled=0 /etc/php/7.2/mods-available/apcu.ini; then
-	tools/editconf.py /etc/php/7.2/mods-available/apcu.ini -c ';' \
+if grep -q apc.enabled=0 /etc/php/7.3/mods-available/apcu.ini; then
+	tools/editconf.py /etc/php/7.3/mods-available/apcu.ini -c ';' \
 		apc.enabled=1
 fi
 
@@ -346,7 +346,7 @@ fi
 cat > /etc/cron.d/mailinabox-nextcloud << EOF;
 #!/bin/bash
 # Mail-in-a-Box
-*/5 * * * *	root	sudo -u www-data php -f /usr/local/lib/owncloud/cron.php
+*/5 * * * *	root	sudo -u www-data php7.3 -f /usr/local/lib/owncloud/cron.php
 EOF
 chmod +x /etc/cron.d/mailinabox-nextcloud
 
@@ -363,4 +363,4 @@ rm -f /etc/cron.hourly/mailinabox-owncloud
 # ```
 
 # Enable PHP modules and restart PHP.
-restart_service php7.2-fpm
+restart_service php7.3-fpm

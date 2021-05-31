@@ -96,6 +96,9 @@ hide_output add-apt-repository -y ppa:certbot/certbot
 # Install the duplicity PPA.
 hide_output add-apt-repository -y ppa:duplicity-team/duplicity-release-git
 
+# Install PHP PPA.
+hide_output add-apt-repository -y ppa:ondrej/php
+
 # ### Update Packages
 
 # Update system packages to make sure we have the latest upstream versions
@@ -134,7 +137,11 @@ echo Installing system packages...
 apt_install python3 python3-dev python3-pip python3-setuptools \
 	netcat-openbsd wget curl git sudo coreutils bc \
 	haveged pollinate openssh-client unzip \
-	unattended-upgrades cron ntp fail2ban rsyslog
+	unattended-upgrades cron ntp fail2ban rsyslog \
+	php7.3-fpm
+
+# Use PHP 7.3 as default PHP version
+hide_output update-alternatives --set php /usr/bin/php7.3
 
 # ### Suppress Upgrade Prompts
 # When Ubuntu 20 comes out, we don't want users to be prompted to upgrade,
